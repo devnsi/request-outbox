@@ -13,18 +13,21 @@ const __dirname = import.meta.dirname;
  */
 export class RequestOutbox {
     port = process.env.PORT || 3000
+    /** Time to live of captured requests in seconds (before they are discarded). */
     ttl = process.env.TTL ? parseInt(process.env.TTL) : 300 // in seconds.
-    callbackBase = process.env.CALLBACK || `http://${process.env.HOSTNAME || "localhost"}:${this.port}`
-    callback = `${this.callbackBase}/manage`
+    /** Callback where to reach the server. */
+    callback = process.env.CALLBACK || `http://${process.env.HOSTNAME || "localhost"}:${this.port}`
+    /** Headers from the captured request to be transmitted to the target on release. */
     forwardHeaders = (process.env.FORWARD_HEADERS || 'Authorization').split(',')
 
-    entries = {}
+    captured = {}
 
     constructor(autostart = true) {
         setInterval(() => this.evictOutdated(), 1000)
         if (autostart) this.start()
     }
 
+    /** Start the server (if not automatically started on construction). */
     start() {
         const app = express()
         const port = this.port
@@ -42,7 +45,7 @@ export class RequestOutbox {
 
         this.server = app.listen(port, () => {
             console.log(`Listening on port ${port}...`);
-            console.log(`Capturing requests on endpoint ${this.callbackBase}/capture?targetUrl=original-url...`);
+            console.log(`Capturing requests on endpoint ${this.callback}/capture?targetUrl=original-url...`);
             console.log("Configuration", {
                 PORT: port,
                 TTL: this.ttl,
@@ -52,6 +55,7 @@ export class RequestOutbox {
         });
     }
 
+    /** Stop the server. */
     stop() {
         this.server?.close()
     }
@@ -59,8 +63,8 @@ export class RequestOutbox {
     /** Publish website to manage outbox. */
     emitWebsite(_, res) {
         res.render('manage', {
-            callback: this.callback,
-            entries: Object.keys(this.entries).map(id => this.entries[id]),
+            callback: `${this.callback}/manage`,
+            entries: Object.keys(this.captured).map(id => this.captured[id]),
         });
     }
 
@@ -82,7 +86,7 @@ export class RequestOutbox {
                 headers: this.extractRequestHeaders(req),
                 body: this.extractRequestBody(req)
             };
-            this.entries[id] = entry
+            this.captured[id] = entry
             console.log(`Captured request '${id}'.`)
             this.respondOnCapture(req, res, entry)
         } catch (error) {
@@ -113,12 +117,12 @@ export class RequestOutbox {
     /** Remove outdated requests. */
     evictOutdated() {
         const threshold = new Date(Date.now() - this.ttl * 1000).getTime()
-        for (const key of Object.keys(this.entries)) {
-            const entry = this.entries[key]
+        for (const key of Object.keys(this.captured)) {
+            const entry = this.captured[key]
             const outOfDate = entry.capturedOn ? entry.capturedOn < threshold : false
             if (outOfDate) {
                 console.log(`Evict '${key}'.`)
-                delete this.entries[key]
+                delete this.captured[key]
             }
         }
     }
@@ -127,14 +131,14 @@ export class RequestOutbox {
     async manageRequests(req, res) {
         console.log("Received manage request", req.body);
         for (const id of req.body.allowed || []) {
-            const entry = this.entries[id];
+            const entry = this.captured[id];
             await this.forward(entry, id, res);
         }
         for (const id of req.body.deleted || []) {
             console.log(`Deleting '${id}'`);
-            delete this.entries[id];
+            delete this.captured[id];
         }
-        console.log("Remaining entries", Object.keys(this.entries));
+        console.log("Remaining entries", Object.keys(this.captured));
         res.status(200);
         res.end();
     }
@@ -147,7 +151,7 @@ export class RequestOutbox {
                 validateStatus: (_) => true // don't throw errors.
             });
             console.log(`Forwarded '${id}':`, response.status, response.status >= 400 ? response.data : response.statusText);
-            delete this.entries[id];
+            delete this.captured[id];
         } catch (error) {
             const responseError = { error: error.code };
             console.error(`Forwarding '${id}' failed: ${error.code}.`);

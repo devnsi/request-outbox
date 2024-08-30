@@ -12,6 +12,7 @@
     "run:stub": "stubby --stubs 8080 --data ./test/stub-target.yaml",
     "run:request": "bash ./test/stub-request.sh",
     "test": "mocha --extension spec.js --fail-zero --exit",
+    "prepack": "tsc index.js --declaration --allowJs --emitDeclarationOnly --skipLibCheck",
     "docker:build": "docker build . -t request-outbox:latest",
     "docker:run": "docker run -it -d --rm -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 --name request-outbox request-outbox:latest"
   },
@@ -26,11 +27,13 @@
     "concurrently": "^8.2.2",
     "mocha": "^10.7.3",
     "nodemon": "^3.1.4",
-    "stubby": "^5.1.0"
+    "stubby": "^5.1.0",
+    "typescript": "^5.5.4"
   },
   "files": [
     "views",
     "index.js",
+    "index.d.ts",
     "package.json",
     "README.md"
   ]
