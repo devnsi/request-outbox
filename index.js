@@ -14,8 +14,9 @@ const __dirname = import.meta.dirname;
 export class RequestOutbox {
     port = process.env.PORT || 3000
     ttl = process.env.TTL ? parseInt(process.env.TTL) : 300 // in seconds.
-    callback = process.env.CALLBACK || `http://${process.env.HOSTNAME || "localhost"}:${this.port}/manage`
-    forwardHeaders = (process.env.FORWARD_HEADERS || '').split(',')
+    callbackBase = process.env.CALLBACK || `http://${process.env.HOSTNAME || "localhost"}:${this.port}`
+    callback = `${this.callbackBase}/manage`
+    forwardHeaders = (process.env.FORWARD_HEADERS || '').split(',').map(h => h.trim().toLowerCase())
     entries = {}
 
     constructor(autostart = true) {
@@ -30,6 +31,7 @@ export class RequestOutbox {
         app.use(express.json())
         app.use(cors())
         app.set('view engine', 'ejs');
+        app.set('views', path.join(__dirname, 'views'));
 
         /** Show outbox contents. */
         app.get('/', (req, res) => this.emitWebsite(req, res))
@@ -37,14 +39,17 @@ export class RequestOutbox {
         app.post('/capture', (req, res) => this.captureRequest(req, res))
         app.post('/manage', (req, res) => this.manageRequests(req, res))
 
-        app.listen(port, () => console.log(`Listening on port ${port}...`))
+        app.listen(port, () => {
+            console.log(`Listening on port ${port}...`);
+            console.log(`Capturing requests on endpoint ${this.callbackBase}/capture?targetUrl=original-url...`);
+        });
     }
 
     /** Publish website to manage outbox. */
     emitWebsite(_, res) {
         res.render('manage', {
             callback: this.callback,
-            entries: Object.keys(this.entries).map(id => ({ id, ...this.entries[id] })),
+            entries: Object.keys(this.entries).map(id => this.entries[id]),
         });
     }
 
@@ -60,6 +65,7 @@ export class RequestOutbox {
             if (!targetUrl) res.status(404).send({ error: 'missing targetUrl query parameter' });
             const id = randomUUID();
             const entry = {
+                id: id,
                 capturedOn: Date.now(),
                 targetUrl: targetUrl,
                 headers: this.extractRequestHeaders(req),
@@ -67,7 +73,7 @@ export class RequestOutbox {
             };
             this.entries[id] = entry
             console.log(`Captured request '${id}'.`)
-            res.send(entry);
+            this.respondOnCapture(req, res, entry)
         } catch (error) {
             res.status(500).send({
                 error: "capturing request failed",
@@ -78,12 +84,19 @@ export class RequestOutbox {
 
     /** Extract and transform header to sent to original target (e.g. auth information). */
     extractRequestHeaders(req) {
-        return Object.fromEntries(Object.entries(req.headers).filter(([k]) => this.forwardHeaders.includes(k)));
+        const allowed = ([key, _])  => this.forwardHeaders.includes(key.toLowerCase());
+        const headers = Object.entries(req.headers).filter(allowed);
+        return Object.fromEntries(headers);
     }
 
     /** Extract and transform request body to sent to original target (e.g. modify values). */
     extractRequestBody(req) {
         return req.body
+    }
+
+    /** Formulate response for the captured request. */
+    respondOnCapture(req, res, entry) {
+        res.status(200).send(entry)
     }
 
     /** Remove outdated requests. */

@@ -8,7 +8,9 @@
   "scripts": {
     "setup": "stubby --stubs 8080 --data ./test/stubs.yaml --watch",
     "start": "nodemon index-test.js",
-    "execute": "sh ./test/post-example.sh"
+    "test:request": "bash ./test/post-example.sh",
+    "docker:build": "docker build . -t request-outbox:latest",
+    "docker:run": "docker run -it -d --rm -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 --name request-outbox request-outbox:latest"
   },
   "dependencies": {
     "axios": "^1.7.5",
