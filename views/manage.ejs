@@ -6,28 +6,106 @@
     <title>Request Outbox</title>
     <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
     <style>
+        :root,
+        ::backdrop {
+            --row-highlight: #a1c7ff;
+        }
+
+        @media (prefers-color-scheme:dark) {
+
+            :root,
+            ::backdrop {
+                --row-highlight: #7e6129;
+            }
+        }
+
+        html {
+            height: 100vh;
+        }
+
         body {
-            grid-template-columns: 1fr min(60em, 90%) 1fr
+            grid-template-columns: 1fr 95% 1fr;
+            grid-template-rows: min-content auto min-content;
+            height: 100%;
         }
 
-        main {
-            max-width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
+        body>header {
+            padding: 0;
         }
 
-        textarea.request-body {
-            width: 100%;
-            font-family: "Lucida Console", Monaco, monospace;
-            font-size: 0.8rem;
-            line-height: 1.2;
-        }
-
-        td.line {
+        body>main {
+            display: grid;
+            grid-gap: 1em;
+            grid-template-columns: 50% 50%;
+            height: 100%;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            max-width: 20rem;
+            padding: 1em;
+        }
+
+        body>main #left {
+            overflow: hidden;
+        }
+
+        body>main #left form {
+            display: grid;
+            grid-template-rows: 1fr min-content;
+            max-height: 100%;
+        }
+
+        body>main #left #table-wrapper {
+            overflow: auto;
+        }
+
+        body>main #left table {
+            /* to fill space */
+            width: 100%;
+            margin: 0;
+        }
+
+        body>main #left table thead th {
+            border-bottom: none;
+            border-top: none;
+            box-shadow: inset 0 1px 0 var(--border), inset 0 -3px 0 var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        body>main #left td.link>a {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        body>main #left .hidden {
+            display: none;
+        }
+
+        body>main #left #button-wrapper {
+            padding-top: 1em;
+            margin-left: auto;
+        }
+
+        body>main #left #button-wrapper button {
+            margin: 0;
+        }
+
+        body>main #right {
+            /* manage overflow of code display */
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+
+        body>main #right #request-body {
+            /* fill space */
+            box-sizing: border-box;
+            font-family: "Lucida Console", Monaco, monospace;
+            font-size: 1rem;
+            height: 100%;
+            width: 100%;
+            line-height: 1;
+            margin: 0;
+            overflow: auto;
         }
     </style>
 </head>
@@ -38,41 +116,53 @@
         <p>Capture requests and forward on manual release.</p>
     </header>
     <main>
-        <form>
-            <table>
-                <thead>
-                    <tr>
-                        <th id="allow">Release</th>
-                        <th id="delete">Discard</th>
-                        <th>Received</th>
-                        <th>Target</th>
-                        <th>Body</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% entries.forEach(function(entry) { %>
-                        <tr>
-                            <td><input type="checkbox" class="allow" name="allow" value="<%= entry.id %>" /></td>
-                            <td><input type="checkbox" class="delete" name="delete" value="<%= entry.id %>" /></td>
-                            <td title="<%= new Date(entry.capturedOn).toISOString() %>">
-                                <%= new Date(entry.capturedOn).toLocaleTimeString() %>
-                            </td>
-                            <td class="line" title="<%= entry.targetUrl %>">
-                                <a href="<%= entry.targetUrl %>">
-                                    <%= entry.targetUrl %>
-                                </a>
-                            </td>
-                            <td>
-                                <textarea class="request-body" cols="120"
-                                    rows="5"><%= JSON.stringify(entry.body, null, 2) %></textarea>
-                            </td>
-                        </tr>
-                        <% }); %>
-                </tbody>
-            </table>
-            <button type="submit">Submit</button>
-            <button type="reset">Reset</button>
-        </form>
+        <div id="left">
+            <form>
+                <div id="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="date">Received</th>
+                                <th class="link">Target</th>
+                                <th class="choice" id="allow">Release</th>
+                                <th class="choice" id="delete">Discard</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% entries.forEach(function(entry) { %>
+                                <tr class="entry" id="id-<%= entry.id %>">
+                                    <td class="hidden"><data><%= JSON.stringify(entry.body, null, 2) %></data></td>
+                                    <td class="date" title="<%= new Date(entry.capturedOn).toISOString() %>"><%= new Date(entry.capturedOn).toLocaleTimeString() %></td>
+                                    <td class="link" title="<%= entry.targetUrl %>"><a href="<%= entry.targetUrl %>"><%= entry.targetUrl %></a></td>
+                                    <td class="choice"><input type="checkbox" class="allow" name="allow" value="<%= entry.id %>" /></td>
+                                    <td class="choice"><input type="checkbox" class="delete" name="delete" value="<%= entry.id %>" /></td>
+                                </tr>
+                                <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="button-wrapper">
+                    <button type="submit">Submit</button>
+                    <button type="reset">Reset</button>
+                </div>
+            </form>
+        </div>
+        <div id="right">
+            <pre id="request-body"></pre>
+        </div>
+        <script>
+            // Update aside with body on click.
+            document.querySelectorAll(".entry").forEach(element => element.addEventListener("click", (event) => {
+                if (event.target.localName !== "td") return
+                const row = event.target.parentElement
+                const clicked = row.id
+                const selector = `tr#${clicked} data`
+                const content = document.querySelector(selector).textContent
+                document.querySelector("#request-body").textContent = content
+                document.querySelectorAll(".entry").forEach(element => element.style.removeProperty("background-color"))
+                row.style["background-color"] = "var(--row-highlight)"
+            }))
+        </script>
         <script>
             // Send the user commands to the server.
             document.querySelector('form').addEventListener('submit', e => send(e));
