@@ -4,7 +4,9 @@
   "description": "Capture requests and forward on manual release.",
   "homepage": "https://github.com/devnsi/request-outbox",
   "main": "request-outbox.js",
-  "bin": "bin/request-outbox",
+  "bin": {
+    "request-outbox": "./bin/request-outbox.js"
+  },
   "type": "module",
   "keywords": [
     "capture",
@@ -37,8 +39,8 @@
     "run:request": "bash ./test/stub-request.sh",
     "test": "mocha --extension spec.js --fail-zero --exit",
     "prepack": "tsc request-outbox.js --declaration --allowJs --emitDeclarationOnly --skipLibCheck",
-    "docker:build": "docker build . -t request-outbox:latest",
-    "docker:run": "docker run -it -d --rm -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 --name request-outbox request-outbox:latest"
+    "docker:build": "npm pack && docker build . -t request-outbox:latest",
+    "docker:run": "docker run -it -d --rm --name request-outbox -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 request-outbox:latest"
   },
   "dependencies": {
     "axios": "^1.7.5",
