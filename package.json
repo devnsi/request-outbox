@@ -6,9 +6,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "setup": "stubby --stubs 8080 --data ./test/stubs.yaml --watch",
-    "start": "nodemon index-test.js",
-    "test:request": "bash ./test/post-example.sh",
+    "start": "concurrently --kill-others \"npm:run:app:examples\" \"npm:run:stub\"",
+    "run:app": "nodemon index.js",
+    "run:app:examples": "nodemon test/run.js",
+    "run:stub": "stubby --stubs 8080 --data ./test/stub-target.yaml",
+    "run:request": "bash ./test/stub-request.sh",
+    "test": "mocha --extension spec.js --fail-zero --exit",
     "docker:build": "docker build . -t request-outbox:latest",
     "docker:run": "docker run -it -d --rm -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 --name request-outbox request-outbox:latest"
   },
@@ -20,6 +23,8 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
+    "mocha": "^10.7.3",
     "nodemon": "^3.1.4",
     "stubby": "^5.1.0"
   },

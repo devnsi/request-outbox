@@ -16,7 +16,8 @@ export class RequestOutbox {
     ttl = process.env.TTL ? parseInt(process.env.TTL) : 300 // in seconds.
     callbackBase = process.env.CALLBACK || `http://${process.env.HOSTNAME || "localhost"}:${this.port}`
     callback = `${this.callbackBase}/manage`
-    forwardHeaders = (process.env.FORWARD_HEADERS || '').split(',').map(h => h.trim().toLowerCase())
+    forwardHeaders = (process.env.FORWARD_HEADERS || 'Authorization').split(',')
+
     entries = {}
 
     constructor(autostart = true) {
@@ -39,9 +40,15 @@ export class RequestOutbox {
         app.post('/capture', (req, res) => this.captureRequest(req, res))
         app.post('/manage', (req, res) => this.manageRequests(req, res))
 
-        app.listen(port, () => {
+        this.server = app.listen(port, () => {
             console.log(`Listening on port ${port}...`);
             console.log(`Capturing requests on endpoint ${this.callbackBase}/capture?targetUrl=original-url...`);
+            console.log("Configuration", {
+                PORT: port,
+                TTL: this.ttl,
+                CALLBACK: this.callback,
+                FORWARD_HEADERS: this.forwardHeaders
+            })
         });
     }
 
@@ -66,7 +73,7 @@ export class RequestOutbox {
             const id = randomUUID();
             const entry = {
                 id: id,
-                capturedOn: Date.now(),
+                capturedOn: new Date().toISOString(),
                 targetUrl: targetUrl,
                 headers: this.extractRequestHeaders(req),
                 body: this.extractRequestBody(req)
@@ -84,7 +91,7 @@ export class RequestOutbox {
 
     /** Extract and transform header to sent to original target (e.g. auth information). */
     extractRequestHeaders(req) {
-        const allowed = ([key, _])  => this.forwardHeaders.includes(key.toLowerCase());
+        const allowed = ([key, _]) => this.forwardHeaders.map(h => h.trim().toLowerCase()).includes(key.toLowerCase());
         const headers = Object.entries(req.headers).filter(allowed);
         return Object.fromEntries(headers);
     }

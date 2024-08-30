@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { RequestOutbox } from "./index.js"
+import { RequestOutbox } from "../index.js"
 
 const requestOutbox = new RequestOutbox();
 
