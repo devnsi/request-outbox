@@ -1,5 +1,5 @@
 {
-  "name": "@devnsi/request-outbox",
+  "name": "request-outbox",
   "version": "1.0.0",
   "description": "capture requests and forward on manual release",
   "license": "MIT",

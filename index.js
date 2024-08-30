@@ -52,6 +52,10 @@ export class RequestOutbox {
         });
     }
 
+    stop() {
+        this.server?.close()
+    }
+
     /** Publish website to manage outbox. */
     emitWebsite(_, res) {
         res.render('manage', {

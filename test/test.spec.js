@@ -21,7 +21,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-    requestOutbox.server.close()
+    requestOutbox.stop()
     targetDouble.stop()
 })
 
