@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Request Outbox</title>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+    <style>
+        body {
+            grid-template-columns: 1fr min(60em, 90%) 1fr
+        }
+
+        main {
+            max-width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        textarea.request-body {
+            width: 100%;
+            font-family: "Lucida Console", Monaco, monospace;
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+
+        td.line {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 20rem;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Request Outbox</h1>
+        <p>Capture requests and forward on manual release.</p>
+    </header>
+    <main>
+        <form>
+            <table>
+                <thead>
+                    <tr>
+                        <th id="allow">Release</th>
+                        <th id="delete">Discard</th>
+                        <th>Received</th>
+                        <th>Target</th>
+                        <th>Body</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% entries.forEach(function(entry) { %>
+                        <tr>
+                            <td><input type="checkbox" class="allow" name="allow" value="<%= entry.id %>" /></td>
+                            <td><input type="checkbox" class="delete" name="delete" value="<%= entry.id %>" /></td>
+                            <td title="<%= new Date(entry.capturedOn).toISOString() %>">
+                                <%= new Date(entry.capturedOn).toLocaleTimeString() %>
+                            </td>
+                            <td class="line" title="<%= entry.targetUrl %>">
+                                <a href="<%= entry.targetUrl %>">
+                                    <%= entry.targetUrl %>
+                                </a>
+                            </td>
+                            <td>
+                                <textarea class="request-body" cols="120"
+                                    rows="5"><%= JSON.stringify(entry.body, null, 2) %></textarea>
+                            </td>
+                        </tr>
+                        <% }); %>
+                </tbody>
+            </table>
+            <button type="submit">Submit</button>
+            <button type="reset">Reset</button>
+        </form>
+        <script>
+            // Send the user commands to the server.
+            document.querySelector('form').addEventListener('submit', e => send(e));
+            async function send(event) {
+                event.preventDefault();
+                const data = new FormData(event.target);
+                const dataEntries = [...data.entries()]
+                const allowed = dataEntries.filter(e => e[0] === "allow").map(e => e[1])
+                const deleted = dataEntries.filter(e => e[0] === "delete").map(e => e[1])
+                await postChoice({ allowed, deleted })
+                document.querySelector('form').reset()
+                location.reload()
+            }
+            async function postChoice(params) {
+                console.log("Posting", params)
+                const response = await fetch("<%= callback %>", {
+                    method: 'POST',
+                    body: JSON.stringify(params),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.status !== 200) {
+                    const body = await response.text()
+                    const json = JSON.parse(body)
+                    const notification = `${response.statusText}\n\n${JSON.stringify(json, null, 2)}`
+                    alert(notification)
+                }
+            }
+        </script>
+        <script>
+            // Toggle on the "allow" column.
+            let allowToggle = true
+            document.querySelector('th#allow').addEventListener('click', e => allowAll())
+            async function allowAll() {
+                const allowElemets = document.querySelectorAll('input.allow').forEach(e => e.checked = allowToggle)
+                allowToggle = !allowToggle
+            }
+        </script>
+        <script>
+            // Toggle on the "delete" column.
+            let deleteToggle = true
+            document.querySelector('th#delete').addEventListener('click', e => deleteAll())
+            async function deleteAll() {
+                const allowElemets = document.querySelectorAll('input.delete').forEach(e => e.checked = deleteToggle)
+                deleteToggle = !deleteToggle
+            }
+        </script>
+        <script>
+            // Reload after some time (when the user is not interacting with the site).
+            // This allows the website to be used as a self updating dashboard.
+            let timer;
+            function debouncedReload(timeout = 5 * 60 * 1000) {
+                clearTimeout(timer);
+                timer = setTimeout(() => location.reload(), timeout);
+            }
+            document.querySelector("body").addEventListener("click", (event) => debouncedReload())
+            debouncedReload()
+        </script>
+    </main>
+</body>
+
+</html>

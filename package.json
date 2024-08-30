@@ -1,0 +1,30 @@
+{
+  "name": "@devnsi/request-outbox",
+  "version": "1.0.0",
+  "description": "capture requests and forward on manual release",
+  "license": "MIT",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "setup": "stubby --stubs 8080 --data ./test/stubs.yaml --watch",
+    "start": "nodemon index-test.js",
+    "execute": "sh ./test/post-example.sh"
+  },
+  "dependencies": {
+    "axios": "^1.7.5",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "stubby": "^5.1.0"
+  },
+  "files": [
+    "views",
+    "index.js",
+    "package.json",
+    "README.md"
+  ]
+}
