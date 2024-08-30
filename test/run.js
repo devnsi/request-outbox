@@ -4,20 +4,26 @@ import { RequestOutbox } from "../request-outbox.js"
 const requestOutbox = new RequestOutbox();
 
 [...Array(10)].forEach(_ => {
-    requestOutbox.captured[randomUUID()] = {
-        capturedOn: Date.now(),
+    const id1 = randomUUID()
+    requestOutbox.captured[id1] = {
+        id: id1,
+        capturedOn: new Date().toISOString(),
         targetUrl: "http://localhost:8080/200",
         headers: { "Content-Type": "application/json" },
         body: { "test": "value" }
     };
-    requestOutbox.captured[randomUUID()] = {
-        capturedOn: Date.now(),
+    const id2 = randomUUID()
+    requestOutbox.captured[id2] = {
+        id: id2,
+        capturedOn: new Date().toISOString(),
         targetUrl: "http://localhost:8080/200/some-super-long-link-that-certainly-does-not-fit-well-into-the-ui",
         headers: { "Content-Type": "application/json" },
         body: { "test": "super-long" }
     };
-    requestOutbox.captured[randomUUID()] = {
-        capturedOn: Date.now(),
+    const id3 = randomUUID()
+    requestOutbox.captured[id3] = {
+        id: id3,
+        capturedOn: new Date().toISOString(),
         targetUrl: "http://localhost:8080/401",
         headers: { "Content-Type": "application/json" },
         body: [

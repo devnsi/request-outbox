@@ -1,11 +1,10 @@
-import { deepEqual, equal, match, ok } from 'assert';
+import { deepEqual, equal, match, notEqual, ok } from 'assert';
 import { RequestOutbox } from "../request-outbox.js"
+import { Mock } from './mock.js';
 import axios from 'axios';
-import { Stubby } from 'stubby';
 
 const base = "http://localhost:3000"
-const stub = "http://localhost:8882"
-const stubAdmin = "http://localhost:8889"
+const stub = "http://localhost:8080"
 let requestOutbox
 let targetDouble
 
@@ -13,11 +12,7 @@ beforeEach(() => {
     requestOutbox = new RequestOutbox(false);
     requestOutbox.forwardHeaders = ["Authorization"]
     requestOutbox.start()
-    targetDouble = new Stubby();
-    targetDouble.start({
-        stubs: 8882,
-        admin: 8889
-    });
+    targetDouble = new Mock()
 })
 
 afterEach(() => {
@@ -66,24 +61,14 @@ describe('RequestOutbox', () => {
             const headers = { Authorization: "Basic dXNlcjpwYXNzd29yZA==" }
             const response = await axios.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
             const entry = response.data
-            targetDouble.post({
-                request: {
-                    url: "200",
-                    method: "POST",
-                    headers: {
-                        "authorization": headers.Authorization
-                    }
-                }
-            })
             onWebsite(request.scenario)
             // when
             const allowed = [entry.id]
             const deleted = []
             await axios.post(`${base}/manage`, { allowed, deleted })
             // then
-            const stubbed = await axios.get(`${stubAdmin}/1`)
-            console.log("Stubbed", stubbed.data)
-            equal(stubbed.data.hits, 1)
+            ok(targetDouble.requested)
+            equal(targetDouble.requested.headers.authorization, headers.Authorization)
             notOnWebsite(request.scenario)
         });
 
