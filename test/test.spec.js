@@ -1,5 +1,5 @@
 import { deepEqual, equal, match, ok } from 'assert';
-import { RequestOutbox } from "../index.js"
+import { RequestOutbox } from "../request-outbox.js"
 import axios from 'axios';
 import { Stubby } from 'stubby';
 

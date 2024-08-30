@@ -1,18 +1,42 @@
 {
   "name": "request-outbox",
   "version": "1.0.0",
-  "description": "capture requests and forward on manual release",
-  "license": "MIT",
-  "main": "index.js",
+  "description": "Capture requests and forward on manual release.",
+  "homepage": "https://github.com/devnsi/request-outbox",
+  "main": "request-outbox.js",
+  "bin": "bin/request-outbox",
   "type": "module",
+  "keywords": [
+    "capture",
+    "outbox",
+    "request",
+    "stub",
+    "test",
+    "webserver"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/devnsi/request-outbox.git"
+  },
+  "files": [
+    "bin/",
+    "views/",
+    "request-outbox",
+    "request-outbox.d.ts"
+  ],
+  "directories": {
+    "bin": "bin",
+    "views": "views"
+  },
   "scripts": {
     "start": "concurrently --kill-others \"npm:run:app:examples\" \"npm:run:stub\"",
-    "run:app": "nodemon index.js",
+    "run:app": "nodemon request-outbox.js",
     "run:app:examples": "nodemon test/run.js",
     "run:stub": "stubby --stubs 8080 --data ./test/stub-target.yaml",
     "run:request": "bash ./test/stub-request.sh",
     "test": "mocha --extension spec.js --fail-zero --exit",
-    "prepack": "tsc index.js --declaration --allowJs --emitDeclarationOnly --skipLibCheck",
+    "prepack": "tsc request-outbox.js --declaration --allowJs --emitDeclarationOnly --skipLibCheck",
     "docker:build": "docker build . -t request-outbox:latest",
     "docker:run": "docker run -it -d --rm -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 --name request-outbox request-outbox:latest"
   },
@@ -29,12 +53,5 @@
     "nodemon": "^3.1.4",
     "stubby": "^5.1.0",
     "typescript": "^5.5.4"
-  },
-  "files": [
-    "views",
-    "index.js",
-    "index.d.ts",
-    "package.json",
-    "README.md"
-  ]
+  }
 }
