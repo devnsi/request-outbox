@@ -5,7 +5,7 @@
   "homepage": "https://github.com/devnsi/request-outbox",
   "main": "request-outbox.js",
   "bin": {
-    "request-outbox": "./bin/request-outbox.js"
+    "request-outbox": "bin/request-outbox.js"
   },
   "type": "module",
   "keywords": [
@@ -19,7 +19,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/devnsi/request-outbox.git"
+    "url": "git+https://github.com/devnsi/request-outbox.git"
   },
   "files": [
     "bin/",

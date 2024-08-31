@@ -1,0 +1,31 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  test-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  test-docker:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - run: npm ci
+    - run: npm run docker:build
+    - run: npm run docker:run
+    - run: docker ps
+    - name: Wait for container...
+      run: timeout 30s sh -c 'until curl --fail localhost:3000 > /dev/null; do echo "Wait for container..."; sleep 2; done'
+    - run: "[[ \"$(curl localhost:3000)\" =~ \"Request Outbox\" ]] || exit 1"
