@@ -1,6 +1,6 @@
 {
   "name": "request-outbox",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Capture requests and forward on manual release.",
   "homepage": "https://github.com/devnsi/request-outbox",
   "main": "request-outbox.js",
