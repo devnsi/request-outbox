@@ -3,6 +3,13 @@ Request Outbox
 
 Capture requests and forward on manual release.
 
+Configure the origin to send requests to the outbox instead of the target.
+Use the query parameter targetUrl to specify the originally target.
+Inspect requests in the user interface of the outbox.
+Release the request to the target or discard the request.
+
+Customize the behavior (e.g. requests, responses) by using the [API](#Programmatic-API).
+
 ## Installation
 
 ### via npm
@@ -14,6 +21,16 @@ npm install -g request-outbox
 This will install `request-outbox` as a command in your `PATH`. 
 Discard the `-g` flag if you'd like to use it as project dependency.
 
+### via docker
+
+```shell
+docker run -d --rm --name request-box -p 3000:3000 -e CALLBACK=http://localhost:3000 devnsi/request-outbox:latest
+docker logs request-box
+start http://localhost:3000
+```
+
+See [Dockerhub](https://hub.docker.com/r/devnsi/request-outbox) for available tags.
+
 ### via source
 
 ```shell
@@ -23,15 +40,9 @@ npm install
 npm start
 ```
 
-## Starting the Server
-
-```shell
-[sudo] request-outbox
-```
-
 ## Configuration
 
-THe application can be configured by environment variables.
+The application can be configured by environment variables.
 
 ## Programmatic API
 
