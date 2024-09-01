@@ -133,8 +133,8 @@ export class RequestOutbox {
             await this.forward(entry, id, res);
         }
         } catch (error) {
-            const responseError = { error: error.code, response: error.response.data };
-            console.error('Forwarding failed.', error);
+            const responseError = { status: error.status, request: `${error.config.method} ${error.config.url}`, response: error.response.data };
+            console.error('Forwarding failed.', responseError);
             res.status(500).send(responseError).end();
             return
         }
