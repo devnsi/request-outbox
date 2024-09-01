@@ -72,6 +72,19 @@ describe('RequestOutbox', () => {
             notOnWebsite(request.scenario)
         });
 
+        it('should use original request method', async () => {
+            // given
+            const targetUrl = `${stub}/200`
+            const response = await axios.get(`${base}/capture?targetUrl=${targetUrl}`)
+            const entry = response.data
+            // when
+            const allowed = [entry.id]
+            const deleted = []
+            await axios.post(`${base}/manage`, { allowed, deleted })
+            // then
+            equal(targetDouble.requested.method, 'GET')
+        });
+
         it('should delete', async () => {
             // given
             const indicator = "should-delete"

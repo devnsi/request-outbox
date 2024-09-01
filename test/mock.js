@@ -13,7 +13,7 @@ export class Mock {
         const port = 8080
         app.use(express.json())
         app.use(cors())
-        app.post('/*', (req, res) => this.mock(req, res))
+        app.all('/*', (req, res) => this.mock(req, res))
         this.server = app.listen(port, () => {
             console.log(`Mock listening on port ${port}...`);
         });
@@ -24,7 +24,7 @@ export class Mock {
     }
 
     mock(req, res) {
-        console.log("Mock received on", req.originalUrl)
+        console.log("Mock received on", req.method, req.originalUrl)
         this.requested = req
         if (req.originalUrl == "/200")
             res.status(200).send({ "stub": "success" }).end()

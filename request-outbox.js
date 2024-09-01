@@ -40,7 +40,7 @@ export class RequestOutbox {
         /** Show outbox contents. */
         app.get('/', (req, res) => this.emitWebsite(req, res))
         app.get('/favicon.ico', (req, res) => this.emitIcon(req, res))
-        app.post('/capture', (req, res) => this.captureRequest(req, res))
+        app.all('/capture', (req, res) => this.captureRequest(req, res))
         app.post('/manage', (req, res) => this.manageRequests(req, res))
 
         this.server = app.listen(port, () => {
@@ -64,19 +64,8 @@ export class RequestOutbox {
     emitWebsite(_, res) {
         res.render('manage', {
             callback: `${this.callback}/manage`,
-            entries: Object.values(this.captured)
-                .sort((a, b) => b.capturedOn.localeCompare(a.capturedOn))
-                .map(entry => ({ ...entry, display: this.formatCapturedForDisplay(entry) }))
+            entries: Object.values(this.captured).sort((a, b) => b.capturedOn.getTime() - a.capturedOn.getTime())
         });
-    }
-
-    formatCapturedForDisplay(entry) {
-        const method = "POST";
-        const headers = Object.keys(entry.headers)
-            .sort((a, b) => a.localeCompare(b))
-            .map(key => `${key}: ${entry.headers[key]}`).join('\n');
-        const body = JSON.stringify(entry.body, null, 2);
-        return `${method} ${entry.targetUrl}\n\n${headers}\n\n${body}`;
     }
 
     emitIcon(_, res) {
@@ -87,20 +76,16 @@ export class RequestOutbox {
     /** Capture requests so they can be inspected and released. */
     captureRequest(req, res) {
         try {
-            const targetUrl = req.query.targetUrl;
-            if (!targetUrl) res.status(404).send({ error: 'missing targetUrl query parameter' });
-            const id = randomUUID();
-            const entry = {
-                id: id,
-                capturedOn: new Date().toISOString(),
-                targetUrl: targetUrl,
-                headers: this.extractRequestHeaders(req),
-                body: this.extractRequestBody(req)
-            };
-            this.captured[id] = entry
-            console.log(`Captured request '${id}'.`)
+            const targetUrl = req.query.targetUrl
+            if (!targetUrl) res.status(404).send({ error: 'missing targetUrl query parameter' })
+            const headers = this.extractRequestHeaders(req)
+            const body = this.extractRequestBody(req)
+            const entry = new CapturedRequest(req, headers, body)
+            this.captured[entry.id] = entry
+            console.log(`Captured request '${entry.id}'.`)
             this.respondOnCapture(req, res, entry)
         } catch (error) {
+            console.warn(`Capturing request failed.`, error)
             res.status(500).send({
                 error: "capturing request failed",
                 details: error
@@ -111,7 +96,7 @@ export class RequestOutbox {
     /** Extract and transform header to sent to original target (e.g. auth information). */
     extractRequestHeaders(req) {
         const allowed = ([key, _]) => this.forwardHeaders.map(h => h.trim().toLowerCase()).includes(key.toLowerCase());
-        const headers = Object.entries(req.headers).filter(allowed);
+        const headers = Object.entries(req.headers ?? {}).filter(allowed);
         return Object.fromEntries(headers);
     }
 
@@ -130,7 +115,7 @@ export class RequestOutbox {
         const threshold = new Date(Date.now() - this.ttl * 1000).getTime()
         for (const key of Object.keys(this.captured)) {
             const entry = this.captured[key]
-            const outOfDate = entry.capturedOn ? entry.capturedOn < threshold : false
+            const outOfDate = entry.capturedOn ? entry.capturedOn.getTime() < threshold : false
             if (outOfDate) {
                 console.log(`Evict '${key}'.`)
                 delete this.captured[key]
@@ -141,10 +126,19 @@ export class RequestOutbox {
     /** Manage capture requests. */
     async manageRequests(req, res) {
         console.log("Received manage request", req.body);
+        // Forward requests.
+        try {
         for (const id of req.body.allowed || []) {
             const entry = this.captured[id];
             await this.forward(entry, id, res);
         }
+        } catch (error) {
+            const responseError = { error: error.code, response: error.response.data };
+            console.error('Forwarding failed.', error);
+            res.status(500).send(responseError).end();
+            return
+        }
+        // Delete requests.
         for (const id of req.body.deleted || []) {
             console.log(`Deleting '${id}'`);
             delete this.captured[id];
@@ -155,18 +149,36 @@ export class RequestOutbox {
     }
 
     async forward(entry, id, res) {
-        try {
-            const response = await axios.post(entry.targetUrl, entry.body, {
+        const response = await axios.request({
+            method: entry.method,
+            url: entry.targetUrl,
                 headers: entry.headers,
+            data: entry.body,
                 timeout: 10 * 1000,
-                validateStatus: (_) => true // don't throw errors.
             });
             console.log(`Forwarded '${id}':`, response.status, response.status >= 400 ? response.data : response.statusText);
             delete this.captured[id];
-        } catch (error) {
-            const responseError = { error: error.code };
-            console.error(`Forwarding '${id}' failed: ${error.code}.`);
-            res.status(500).send(responseError).end();
-        }
+    }
+}
+
+class CapturedRequest {
+    constructor(req, headers, body) {
+        this.id = randomUUID()
+        this.capturedOn = new Date()
+        this.method = req.method
+        this.targetUrl = req.query.targetUrl
+        this.headers = headers
+        this.body = body
+    }
+
+    formatCapturedForDisplay() {
+        const headline = `${this.method} ${this.targetUrl}`
+        const headers = Object.keys(this.headers)
+            .sort((a, b) => a.localeCompare(b))
+            .map(key => `${key}: ${this.headers[key]}`).join('\n');
+        const headersMargin = headers ? '\n\n' : ''
+        const body = JSON.stringify(this.body, null, 2) ?? '';
+        const bodyMargin = body ? '\n\n' : ''
+        return headline + headersMargin + headers + bodyMargin + body
     }
 }

@@ -1,33 +1,26 @@
-import { randomUUID } from 'crypto';
 import { RequestOutbox } from "../request-outbox.js"
 
-const requestOutbox = new RequestOutbox();
-
-[...Array(10)].forEach(_ => {
-    const id1 = randomUUID()
-    requestOutbox.captured[id1] = {
-        id: id1,
-        capturedOn: new Date("2024-01-01T18:00:00Z").toISOString(),
-        targetUrl: "http://localhost:8080/200",
+class Testdata {
+    postLong = {
+        method: "POST",
+        query: { targetUrl: "http://localhost:8080/200/some-super-long-link-that-certainly-does-not-fit-well-into-the-ui" },
         headers: { "Content-Type": "application/json", "Authorization": "Basic dXNlcjpwYXNzd29yZA==" },
-        body: { "test": "value" }
+        body: { "test": "super-long".padEnd(100, '_') }
     };
-    const id2 = randomUUID()
-    requestOutbox.captured[id2] = {
-        id: id2,
-        capturedOn: new Date("2024-01-01T10:00:00Z").toISOString(),
-        targetUrl: "http://localhost:8080/200/some-super-long-link-that-certainly-does-not-fit-well-into-the-ui",
-        headers: { "Content-Type": "application/json" },
-        body: { "test": "super-long" }
+
+    getWithoutBody = {
+        method: "GET",
+        query: { targetUrl: "http://localhost:8080/200" },
+        headers: { "Authorization": "Basic dXNlcjpwYXNzd29yZA==" },
+        body: undefined
     };
-    const id3 = randomUUID()
-    requestOutbox.captured[id3] = {
-        id: id3,
-        capturedOn: new Date("2024-01-01T12:00:00Z").toISOString(),
-        targetUrl: "http://localhost:8080/401",
-        headers: { "Content-Type": "application/json" },
+
+    putWithBody = {
+        method: "PUT",
+        query: { targetUrl: "http://localhost:8080/401" },
+        headers: undefined,
         body: [
-            {
+            [...Array(10)].map(_ => ({
                 "_id": "66ce2f1d29741aa90a63808f",
                 "index": 0,
                 "guid": "4722b79b-21c8-4ac2-88d7-d21837e247da",
@@ -37,18 +30,21 @@ const requestOutbox = new RequestOutbox();
                 "eyeColor": "brown",
                 "name": "Lucille Shepherd",
                 "gender": "female"
-            },
-            {
-                "_id": "66ce2f1dc0a740a296e6758c",
-                "index": 1,
-                "guid": "08abfa31-28e9-4c4d-ade0-602ca6ad32ba",
-                "isActive": true,
-                "balance": "$3,286.04",
-                "age": 39,
-                "eyeColor": "blue",
-                "name": "Bette Melendez",
-                "gender": "female"
-            }
+            })),
         ]
     };
-})
+
+    static resMock = ({
+        status: (_) => ({ send: (_) => { } }),
+    });
+
+    requests = [...Array(5)].flatMap(_ => [
+        this.postLong,
+        this.getWithoutBody,
+        this.putWithBody
+    ])
+}
+
+const requestOutbox = new RequestOutbox();
+const testdata = new Testdata().requests
+testdata.forEach(req => requestOutbox.captureRequest(req, Testdata.resMock))
