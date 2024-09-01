@@ -131,7 +131,7 @@
                         <tbody>
                             <% entries.forEach(function(entry) { %>
                                 <tr class="entry" id="id-<%= entry.id %>">
-                                    <td class="hidden"><data><%= JSON.stringify(entry.body, null, 2) %></data></td>
+                                    <td class="hidden"><data><%= entry.display %></data></td>
                                     <td class="date" title="<%= new Date(entry.capturedOn).toISOString() %>"><%= new Date(entry.capturedOn).toLocaleTimeString() %></td>
                                     <td class="link" title="<%= entry.targetUrl %>"><a href="<%= entry.targetUrl %>"><%= entry.targetUrl %></a></td>
                                     <td class="choice"><input type="checkbox" class="allow" name="allow" value="<%= entry.id %>" /></td>

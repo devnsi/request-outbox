@@ -7,15 +7,15 @@ const requestOutbox = new RequestOutbox();
     const id1 = randomUUID()
     requestOutbox.captured[id1] = {
         id: id1,
-        capturedOn: new Date().toISOString(),
+        capturedOn: new Date("2024-01-01T18:00:00Z").toISOString(),
         targetUrl: "http://localhost:8080/200",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": "Basic dXNlcjpwYXNzd29yZA==" },
         body: { "test": "value" }
     };
     const id2 = randomUUID()
     requestOutbox.captured[id2] = {
         id: id2,
-        capturedOn: new Date().toISOString(),
+        capturedOn: new Date("2024-01-01T10:00:00Z").toISOString(),
         targetUrl: "http://localhost:8080/200/some-super-long-link-that-certainly-does-not-fit-well-into-the-ui",
         headers: { "Content-Type": "application/json" },
         body: { "test": "super-long" }
@@ -23,7 +23,7 @@ const requestOutbox = new RequestOutbox();
     const id3 = randomUUID()
     requestOutbox.captured[id3] = {
         id: id3,
-        capturedOn: new Date().toISOString(),
+        capturedOn: new Date("2024-01-01T12:00:00Z").toISOString(),
         targetUrl: "http://localhost:8080/401",
         headers: { "Content-Type": "application/json" },
         body: [

@@ -64,8 +64,19 @@ export class RequestOutbox {
     emitWebsite(_, res) {
         res.render('manage', {
             callback: `${this.callback}/manage`,
-            entries: Object.keys(this.captured).map(id => this.captured[id]),
+            entries: Object.values(this.captured)
+                .sort((a, b) => b.capturedOn.localeCompare(a.capturedOn))
+                .map(entry => ({ ...entry, display: this.formatCapturedForDisplay(entry) }))
         });
+    }
+
+    formatCapturedForDisplay(entry) {
+        const method = "POST";
+        const headers = Object.keys(entry.headers)
+            .sort((a, b) => a.localeCompare(b))
+            .map(key => `${key}: ${entry.headers[key]}`).join('\n');
+        const body = JSON.stringify(entry.body, null, 2);
+        return `${method} ${entry.targetUrl}\n\n${headers}\n\n${body}`;
     }
 
     emitIcon(_, res) {
