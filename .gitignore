@@ -1,4 +1,6 @@
+*.d.ts
 *.env
 *.tgz
-*.d.ts
+request-outbox.js
+request-outbox.js.map
 node_modules

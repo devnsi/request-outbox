@@ -1,8 +1,9 @@
-import { deepEqual, equal, match, notEqual, ok } from 'assert';
+import { deepEqual, equal, match, ok } from 'assert';
 import { RequestOutbox } from "../request-outbox.js"
 import { Mock } from './mock.js';
 import axios from 'axios';
 
+const client = axios.create({});
 const base = "http://localhost:3000"
 const stub = "http://localhost:8080"
 let requestOutbox
@@ -23,7 +24,7 @@ afterEach(() => {
 describe('RequestOutbox', () => {
     describe('index', () => {
         it('should return website', async () => {
-            const response = await axios.get(base)
+            const response = await client.get(base)
             const sources = response.data
             match(sources, /Request Outbox/);
         });
@@ -36,7 +37,7 @@ describe('RequestOutbox', () => {
             const targetUrl = `${stub}/200`
             const headers = { Authorization: "Basic dXNlcjpwYXNzd29yZA==", Example: "test" }
             // when
-            const response = await axios.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
+            const response = await client.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
             // then
             const entry = response.data
             console.log("Captured Entry", entry)
@@ -48,8 +49,8 @@ describe('RequestOutbox', () => {
 
         it('should show captured request on website', async () => {
             const targetUrl = "indicator-value-for-test"
-            await axios.post(`${base}/capture?targetUrl=${targetUrl}`)
-            onWebsite(targetUrl)
+            await client.post(`${base}/capture?targetUrl=${targetUrl}`)
+            await onWebsite(targetUrl)
         });
     });
 
@@ -59,28 +60,28 @@ describe('RequestOutbox', () => {
             const request = { scenario: "should release" }
             const targetUrl = `${stub}/200`
             const headers = { Authorization: "Basic dXNlcjpwYXNzd29yZA==" }
-            const response = await axios.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
+            const response = await client.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
             const entry = response.data
-            onWebsite(request.scenario)
+            await onWebsite(request.scenario)
             // when
             const allowed = [entry.id]
             const deleted = []
-            await axios.post(`${base}/manage`, { allowed, deleted })
+            await client.post(`${base}/manage`, { allowed, deleted })
             // then
             ok(targetDouble.requested)
             equal(targetDouble.requested.headers.authorization, headers.Authorization)
-            notOnWebsite(request.scenario)
+            await notOnWebsite(request.scenario)
         });
 
         it('should use original request method', async () => {
             // given
             const targetUrl = `${stub}/200`
-            const response = await axios.get(`${base}/capture?targetUrl=${targetUrl}`)
+            const response = await client.get(`${base}/capture?targetUrl=${targetUrl}`)
             const entry = response.data
             // when
             const allowed = [entry.id]
             const deleted = []
-            await axios.post(`${base}/manage`, { allowed, deleted })
+            await client.post(`${base}/manage`, { allowed, deleted })
             // then
             equal(targetDouble.requested.method, 'GET')
         });
@@ -88,27 +89,27 @@ describe('RequestOutbox', () => {
         it('should delete', async () => {
             // given
             const indicator = "should-delete"
-            const response = await axios.post(`${base}/capture?targetUrl=${indicator}`)
+            const response = await client.post(`${base}/capture?targetUrl=${indicator}`)
             const entry = response.data
-            onWebsite(indicator)
+            await onWebsite(indicator)
             // when
             const allowed = []
             const deleted = [entry.id]
-            await axios.post(`${base}/manage`, { allowed, deleted })
+            await client.post(`${base}/manage`, { allowed, deleted })
             // then
-            notOnWebsite(indicator)
+            await notOnWebsite(indicator)
         });
     });
 });
 
 async function onWebsite(indicator) {
-    const website = await axios.get(base)
+    const website = await client.get(base)
     const sources = website.data + ""
     ok(sources.includes(indicator));
 }
 
 async function notOnWebsite(indicator) {
-    const website = await axios.get(base)
+    const website = await client.get(base)
     const sources = website.data + ""
-    ok(sources.includes(indicator));
+    ok(!sources.includes(indicator));
 }

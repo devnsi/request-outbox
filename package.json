@@ -32,13 +32,13 @@
     "views": "views"
   },
   "scripts": {
-    "start": "concurrently --kill-others \"npm:run:app:examples\" \"npm:run:stub\"",
+    "start": "tsc && concurrently --kill-others \"npm:run:app:examples\" \"npm:run:stub\"",
     "run:app": "nodemon request-outbox.js",
     "run:app:examples": "nodemon test/run.js",
     "run:stub": "node ./test/mock-start.js",
     "run:request": "bash ./test/stub-request.sh",
-    "test": "mocha --extension spec.js --fail-zero --exit",
-    "prepack": "tsc request-outbox.js --declaration --allowJs --emitDeclarationOnly --skipLibCheck",
+    "test": "tsc && mocha --extension spec.js --fail-zero --exit",
+    "prepack": "tsc",
     "docker:build": "npm pack && docker build . -t request-outbox:latest",
     "docker:run": "docker run -it -d --rm --name request-outbox -p 3000:3000 -e CALLBACK=http://localhost:3000 -e NODE_TLS_REJECT_UNAUTHORIZED=0 request-outbox:latest"
   },
@@ -50,6 +50,9 @@
     "express": "^4.19.2"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.5.2",
     "concurrently": "^8.2.2",
     "mocha": "^10.7.3",
     "nodemon": "^3.1.4",
