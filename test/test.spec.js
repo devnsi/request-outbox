@@ -49,7 +49,7 @@ describe('RequestOutbox', () => {
         it('should show captured request on website', async () => {
             const targetUrl = "indicator-value-for-test"
             await axios.post(`${base}/capture?targetUrl=${targetUrl}`)
-            onWebsite(targetUrl)
+            await onWebsite(targetUrl)
         });
     });
 
@@ -61,7 +61,7 @@ describe('RequestOutbox', () => {
             const headers = { Authorization: "Basic dXNlcjpwYXNzd29yZA==" }
             const response = await axios.post(`${base}/capture?targetUrl=${targetUrl}`, request, { headers })
             const entry = response.data
-            onWebsite(request.scenario)
+            await onWebsite(request.scenario)
             // when
             const allowed = [entry.id]
             const deleted = []
@@ -69,7 +69,7 @@ describe('RequestOutbox', () => {
             // then
             ok(targetDouble.requested)
             equal(targetDouble.requested.headers.authorization, headers.Authorization)
-            notOnWebsite(request.scenario)
+            await notOnWebsite(request.scenario)
         });
 
         it('should use original request method', async () => {
@@ -90,13 +90,13 @@ describe('RequestOutbox', () => {
             const indicator = "should-delete"
             const response = await axios.post(`${base}/capture?targetUrl=${indicator}`)
             const entry = response.data
-            onWebsite(indicator)
+            await onWebsite(indicator)
             // when
             const allowed = []
             const deleted = [entry.id]
             await axios.post(`${base}/manage`, { allowed, deleted })
             // then
-            notOnWebsite(indicator)
+            await notOnWebsite(indicator)
         });
     });
 });
@@ -110,5 +110,5 @@ async function onWebsite(indicator) {
 async function notOnWebsite(indicator) {
     const website = await axios.get(base)
     const sources = website.data + ""
-    ok(sources.includes(indicator));
+    ok(!sources.includes(indicator));
 }
